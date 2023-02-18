@@ -5,12 +5,12 @@ metadata:
   name: example-provider-secret
 type: Opaque
 data:
-  # credentials: BASE64ENCODED_PROVIDER_CREDS
+  credentials: U2FtcGxlIGJhc2U2NCBlbmNvZGVkIHN0cmluZw==
 ---
 apiVersion: grpc.crossplane.io/v1alpha1
 kind: ProviderConfig
 metadata:
-  name: example
+  name: default
 spec:
   credentials:
     source: Secret

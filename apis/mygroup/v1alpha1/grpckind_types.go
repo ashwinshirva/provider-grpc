@@ -27,12 +27,16 @@ import (
 
 // GrpcKindParameters are the configurable fields of a GrpcKind.
 type GrpcKindParameters struct {
-	ConfigurableField string `json:"configurableField"`
+	Name string `json:"name"`
+	// +optional
+	Description *string `json:"description,omitempty"`
+	// +optional
+	Items string `json:"items,omitempty"`
 }
 
 // GrpcKindObservation are the observable fields of a GrpcKind.
 type GrpcKindObservation struct {
-	ObservableField string `json:"observableField,omitempty"`
+	Status string `json:"status"`
 }
 
 // A GrpcKindSpec defines the desired state of a GrpcKind.

@@ -64,10 +64,14 @@ spec:
               forProvider:
                 description: GrpcKindParameters are the configurable fields of a GrpcKind.
                 properties:
-                  configurableField:
+                  description:
+                    type: string
+                  items:
+                    type: string
+                  name:
                     type: string
                 required:
-                - configurableField
+                - name
                 type: object
               providerConfigRef:
                 default:
@@ -246,8 +250,10 @@ spec:
               atProvider:
                 description: GrpcKindObservation are the observable fields of a GrpcKind.
                 properties:
-                  observableField:
+                  status:
                     type: string
+                required:
+                - status
                 type: object
               conditions:
                 description: Conditions of the resource.

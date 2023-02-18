@@ -1,0 +1,10 @@
+apiVersion: mygroup.grpc.crossplane.io/v1alpha1
+kind: GrpcKind
+metadata:
+  name: example5
+spec:
+  forProvider:
+    name: example5
+    description: "List created by crossplane!"
+  providerConfigRef:
+    name: default
