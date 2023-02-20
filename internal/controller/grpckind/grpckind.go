@@ -162,7 +162,7 @@ func (c *external) Observe(ctx context.Context, mg resource.Managed) (managed.Ex
 	// Check if external resource exists
 	// If managed resource exists and external resource does not exist then mark ResourceExists: false
 	// so that crossplane calls the Create() method for that resource
-	resp, getErr := c.service.grpcClient.GetList(ctx, &listServicepb.GetReq{Name: cr.Spec.ForProvider.Name})
+	resp, getErr := c.service.grpcClient.GetList(ctx, &listServicepb.GetListReq{Name: cr.Spec.ForProvider.Name})
 	if getErr != nil && strings.Contains(getErr.Error(), "does not exist") {
 		log.Error("Observe::External resource does not : ", getErr)
 		return managed.ExternalObservation{
@@ -219,7 +219,7 @@ func (c *external) Create(ctx context.Context, mg resource.Managed) (managed.Ext
 		*cr.Spec.ForProvider.Description = description
 	}
 
-	createResp, err := c.service.grpcClient.Create(context.Background(), &listServicepb.CreateReq{
+	createResp, err := c.service.grpcClient.CreateList(context.Background(), &listServicepb.CreateListReq{
 		Name:        cr.Spec.ForProvider.Name,
 		Description: description,
 	})
@@ -251,7 +251,7 @@ func (c *external) Update(ctx context.Context, mg resource.Managed) (managed.Ext
 
 	log.Infof("Update::Update method called... Updating resource: %+v", cr.GetName())
 
-	_, err := c.service.grpcClient.AddItems(context.Background(), &listServicepb.AddItemsReq{
+	_, err := c.service.grpcClient.UpdateListItems(context.Background(), &listServicepb.UpdateListItemsReq{
 		Name:     cr.Spec.ForProvider.Name,
 		NewItems: cr.Spec.ForProvider.ListItems,
 	})
@@ -279,7 +279,7 @@ func (c *external) Delete(ctx context.Context, mg resource.Managed) error {
 
 	log.Infof("Delete::Deleting: %+v\n", cr.GetName())
 
-	deleteResp, err := c.service.grpcClient.Delete(context.Background(), &listServicepb.DeleteReq{
+	deleteResp, err := c.service.grpcClient.DeleteList(context.Background(), &listServicepb.DeleteListReq{
 		Name: cr.Spec.ForProvider.Name,
 	})
 

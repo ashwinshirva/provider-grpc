@@ -3,7 +3,7 @@ module github.com/crossplane/provider-grpc
 go 1.19
 
 require (
-	github.com/ashwinshirva/provider-grpc-server v0.0.0-20230220062945-f5f758525a9a
+	github.com/ashwinshirva/provider-grpc-server v0.0.0-20230220094449-cccc66914180
 	github.com/crossplane/crossplane-runtime v0.18.0
 	github.com/crossplane/crossplane-tools v0.0.0-20220901191540-806c0b01097b
 	github.com/google/go-cmp v0.5.9
