@@ -31,7 +31,7 @@ type GrpcKindParameters struct {
 	// +optional
 	Description *string `json:"description,omitempty"`
 	// +optional
-	Items string `json:"items,omitempty"`
+	ListItems []int32 `json:"listItems,omitempty"`
 }
 
 // GrpcKindObservation are the observable fields of a GrpcKind.

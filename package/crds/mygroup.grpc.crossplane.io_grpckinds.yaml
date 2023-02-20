@@ -66,8 +66,11 @@ spec:
                 properties:
                   description:
                     type: string
-                  items:
-                    type: string
+                  listItems:
+                    items:
+                      format: int32
+                      type: integer
+                    type: array
                   name:
                     type: string
                 required:

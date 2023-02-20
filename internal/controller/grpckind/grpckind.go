@@ -18,11 +18,11 @@ package grpckind
 
 import (
 	"context"
-	"fmt"
-	"log"
+	"reflect"
 	"strings"
 
 	"github.com/pkg/errors"
+	log "github.com/sirupsen/logrus"
 	"google.golang.org/grpc"
 	"k8s.io/apimachinery/pkg/types"
 	ctrl "sigs.k8s.io/controller-runtime"
@@ -150,37 +150,42 @@ type external struct {
 }
 
 func (c *external) Observe(ctx context.Context, mg resource.Managed) (managed.ExternalObservation, error) {
+	// Check if the managed resource is of expected kind
 	cr, ok := mg.(*v1alpha1.GrpcKind)
 	if !ok {
 		return managed.ExternalObservation{}, errors.New(errNotGrpcKind)
 	}
 
 	// These fmt statements should be removed in the real implementation.
-	fmt.Printf("Observing: %+v", cr)
+	log.Infof("Observing: %+v...", cr.Spec.ForProvider.Name)
 
+	// Check if external resource exists
+	// If managed resource exists and external resource does not exist then mark ResourceExists: false
+	// so that crossplane calls the Create() method for that resource
 	resp, getErr := c.service.grpcClient.GetList(ctx, &listServicepb.GetReq{Name: cr.Spec.ForProvider.Name})
-	if getErr != nil {
-		fmt.Println("Observe::Error getting list: ", getErr)
+	if getErr != nil && strings.Contains(getErr.Error(), "does not exist") {
+		log.Error("Observe::External resource does not : ", getErr)
 		return managed.ExternalObservation{
-			// Return false when the external resource does not exist. This lets
-			// the managed resource reconciler know that it needs to call Create to
-			// (re)create the resource, or that it has successfully been deleted.
-			ResourceExists: false,
-
-			// Return false when the external resource exists, but it not up to date
-			// with the desired managed resource state. This lets the managed
-			// resource reconciler know that it needs to call Update.
-			ResourceUpToDate: true,
-
-			// Return any details that may be required to connect to the external
-			// resource. These will be stored as the connection secret.
+			ResourceExists:    false,
+			ResourceUpToDate:  true,
 			ConnectionDetails: managed.ConnectionDetails{},
 		}, nil
 	}
-	fmt.Println("Observe::List response: ", resp)
 
-	if resp.Status == "SUCCESS" {
+	// If the Get()rpc returns status=SUCCESS it means external resource is created and is in ready state
+	// So mark the CR status as AVAILABLE
+	if resp != nil && resp.Status == "SUCCESS" {
 		cr.Status.SetConditions(xpv1.Available())
+	}
+
+	// Check if the list has changed
+	// If the list has changed return appropriate values in ExternalObservation so that crossplane update method for this resource
+	if resp != nil && !reflect.DeepEqual(resp.Items, cr.Spec.ForProvider.ListItems) {
+		return managed.ExternalObservation{
+			ResourceExists:    true,
+			ResourceUpToDate:  false,
+			ConnectionDetails: managed.ConnectionDetails{},
+		}, nil
 	}
 
 	return managed.ExternalObservation{
@@ -206,7 +211,7 @@ func (c *external) Create(ctx context.Context, mg resource.Managed) (managed.Ext
 		return managed.ExternalCreation{}, errors.New(errNotGrpcKind)
 	}
 
-	fmt.Printf("Creating: %+v", cr)
+	log.Infof("Creating: %+v", cr.GetName())
 
 	// Check if description is populated since is optional field
 	description := ""
@@ -220,7 +225,7 @@ func (c *external) Create(ctx context.Context, mg resource.Managed) (managed.Ext
 	})
 
 	if err != nil && !strings.Contains(err.Error(), "does not exist") {
-		fmt.Println("Error creating list: ", err)
+		log.Error("Error creating list: ", err)
 		return managed.ExternalCreation{
 			// Optionally return any details that may be required to connect to the
 			// external resource. These will be stored as the connection secret.
@@ -244,7 +249,20 @@ func (c *external) Update(ctx context.Context, mg resource.Managed) (managed.Ext
 		return managed.ExternalUpdate{}, errors.New(errNotGrpcKind)
 	}
 
-	fmt.Printf("Updating: %+v", cr)
+	log.Infof("Update::Update method called... Updating resource: %+v", cr.GetName())
+
+	_, err := c.service.grpcClient.AddItems(context.Background(), &listServicepb.AddItemsReq{
+		Name:     cr.Spec.ForProvider.Name,
+		NewItems: cr.Spec.ForProvider.ListItems,
+	})
+	//fmt.Printf("Update:: Update Status for list %v: %v", cr.Spec.ForProvider.Name, addItemsResp.Status)
+
+	if err != nil {
+		log.Infof("Update:: Error updating list %v: %v", cr.Spec.ForProvider.Name, err)
+		return managed.ExternalUpdate{
+			ConnectionDetails: managed.ConnectionDetails{},
+		}, err
+	}
 
 	return managed.ExternalUpdate{
 		// Optionally return any details that may be required to connect to the
@@ -259,17 +277,17 @@ func (c *external) Delete(ctx context.Context, mg resource.Managed) error {
 		return errors.New(errNotGrpcKind)
 	}
 
-	fmt.Printf("Deleting: %+v", cr)
+	log.Infof("Delete::Deleting: %+v\n", cr.GetName())
 
 	deleteResp, err := c.service.grpcClient.Delete(context.Background(), &listServicepb.DeleteReq{
 		Name: cr.Spec.ForProvider.Name,
 	})
 
 	if err != nil {
-		fmt.Printf("Delete:: Error deleting list %v: %v", cr.Spec.ForProvider.Name, err)
+		log.Errorf("Delete:: Error deleting list %v: %v\n", cr.Spec.ForProvider.Name, err)
 		return err
 	}
-	fmt.Printf("Delete:: Delete Status for list %v: %v", cr.Spec.ForProvider.Name, deleteResp.Status)
+	log.Infof("Delete:: Delete Status for list %v: %v\n", cr.Spec.ForProvider.Name, deleteResp.Status)
 
 	return nil
 }
