@@ -9,6 +9,6 @@ spec:
     listItems:
       - 1
       - 2
-      #- 3
+      - 3
   providerConfigRef:
     name: default
